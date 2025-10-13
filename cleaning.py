@@ -4,6 +4,7 @@ from decimal import Decimal
 from config_headers import *
 
 def clean_data(sheet = sheet_name):
+    print(f"Cleaning {sheet}")
     data_df = pd.read_excel(sheet, sheet_name=data_s, keep_default_na=False)
     conv_df = pd.read_excel(sheet, sheet_name=unit_s, keep_default_na=False)
     form_df = pd.read_excel(sheet, sheet_name=form_s, keep_default_na=False)

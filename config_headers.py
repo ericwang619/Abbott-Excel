@@ -1,4 +1,4 @@
-sheet_name = 'Data Sample for programming.xlsx'
+sheet_name = "Data Sample for Programming.xlsx"
 
 # sheet names
 data_s = 'Data'
