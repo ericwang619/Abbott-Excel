@@ -8,6 +8,7 @@ from sklearn.decomposition import PCA
 import seaborn as sns
 
 from config_headers import *
+from cleaning import fit_columns
 
 
 def compute_stats(sheet = sheet_name):
@@ -16,12 +17,16 @@ def compute_stats(sheet = sheet_name):
 
     # group formula with nutrient and find average
     avg_df = find_nut_stats(data_df, new_df)
+
+    # sort formula into clusters
+    cluster_df = create_cluster(avg_df)
+
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
         avg_df.to_excel(writer, sheet_name=stats_s, index=False)
-
-    cluster_df = create_cluster(avg_df)
-    with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
         cluster_df.to_excel(writer, sheet_name=clusters_s, index=False)
+
+        fit_columns(avg_df, writer, stats_s)
+        fit_columns(cluster_df, writer, clusters_s)
 
 
 

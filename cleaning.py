@@ -1,15 +1,19 @@
 import pandas as pd
 from decimal import Decimal
+from openpyxl.utils import get_column_letter
 
 from config_headers import *
 
 def clean_data(sheet = sheet_name):
+
+    # TODO: add progress prints, organize/comment config headers, modify header copy/access to be loops
     print(f"Cleaning {sheet}")
     data_df = pd.read_excel(sheet, sheet_name=data_s, keep_default_na=False)
-    conv_df = pd.read_excel(sheet, sheet_name=unit_s, keep_default_na=False)
+    unit_df = pd.read_excel(sheet, sheet_name=unit_s, keep_default_na=False)
     form_df = pd.read_excel(sheet, sheet_name=form_s, keep_default_na=False)
 
     # remove duplicates
+    print("Removing Duplicates")
     data_df = data_df.drop_duplicates(subset=[batch_h, project_h, temp_h,
                                     dur_h, method_h, nut_h, text_h, unit_h])
 
@@ -17,6 +21,7 @@ def clean_data(sheet = sheet_name):
     add_columns(data_df)
 
     # update column values row by row according to rules
+    print("Converting values, adding unit conversions and formula codes")
     for i, _ in data_df.iterrows():
 
         # cleanup data for temperature, duration, text
@@ -25,19 +30,35 @@ def clean_data(sheet = sheet_name):
         data_df.loc[i, text_h] = convert_text(data_df, i)
 
         # pull unit conversion and formula values from other sheets
-        add_conversions(data_df, i, conv_df)
+        add_unit_conversions(data_df, i, unit_df)
         add_formula(data_df, i, form_df)
+
+    # consolidate project, batch, temp, duration to have nutrients as columns
+    print("Reformatting with Nutrients as Headers")
+    new_df = consolidate(data_df, sheet)
 
     # write revised data to sheet
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
         data_df.to_excel(writer, sheet_name=updated_s, index=False)
-
-    # consolidate project, batch, temp, duration with nutrients
-    new_df = consolidate(data_df, sheet)
-    with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
         new_df.to_excel(writer, sheet_name=consolidated_s, index=False)
 
+        fit_columns(data_df, writer, updated_s)
+        fit_columns(new_df, writer, consolidated_s)
 
+    print(f"Finished Cleaning {sheet}")
+
+
+def fit_columns(new_df, writer, sheet_name):
+    # Access the openpyxl workbook and worksheet
+    worksheet = writer.sheets[sheet_name]
+    # Loop through all columns and set width
+    for i, col in enumerate(new_df.columns, 1):  # 1-based index
+        # Compute max width between header and data
+        column_len = max(
+            new_df[col].astype(str).map(len).max(),  # longest cell
+            len(col)  # header
+        ) + 2  # padding
+        worksheet.column_dimensions[get_column_letter(i)].width = column_len
 
 
 # adds new column headers to dataframe
@@ -90,7 +111,7 @@ def convert_text(df, i):
 
 
 # pull matching columns from conversion tab
-def add_conversions(df, i, conv_df):
+def add_unit_conversions(df, i, unit_df):
     row = df.loc[i]
     cols = [method_h, nut_h, unit_h]
     method, nut, units = row[cols]
@@ -102,7 +123,7 @@ def add_conversions(df, i, conv_df):
     adjusted_value = 'n/a'
 
     # find matching row in conversion tab if it exists
-    match = conv_df.loc[(conv_df[method_h] == method) & (conv_df[nut_h] == nut) & (conv_df[unit_h] == units)]
+    match = unit_df.loc[(unit_df[method_h] == method) & (unit_df[nut_h] == nut) & (unit_df[unit_h] == units)]
     if len(match) > 0:
         first_match = match.iloc[0]
         newNut = str(first_match[newNut_h])
