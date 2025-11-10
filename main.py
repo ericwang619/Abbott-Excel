@@ -3,6 +3,7 @@ from cleaning import *
 from computations import *
 import os
 import argparse
+import traceback
 
 data_folder = "Excel Files"
 
@@ -39,7 +40,8 @@ if __name__ == '__main__':
                     clean_data(file_path)
                     # compute_stats(file_path)
                 except Exception as e:
-                    print(e)
+                    print("An exception occurred:", e)
+                    traceback.print_exc()
 
 
 

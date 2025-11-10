@@ -77,9 +77,6 @@ conv_h = 'Conversion Factor'
 vitE_h = 'Vit E factor'
 results_h = 'Results'
 
-new_headers = [temp_h, humidity_h, interval_h, form_h, sources_h,
-               test_h, newUnit_h, conv_h, vitE_h, results_h]
-
 data_type_h = 'Data Type'
 
 
