@@ -1,9 +1,10 @@
 # This is a sample Python script.
 from cleaning import *
+from computations import *
 import os
 import argparse
 
-folder_name = "Excel Files"
+data_folder = "Excel Files"
 
 
 # Press the green button in the gutter to run the script.
@@ -23,16 +24,23 @@ if __name__ == '__main__':
         if not os.path.isfile(file_path):
             print(f"Error: {args.file} does not exist.")
         clean_data(file_path)
+        # compute_stats(file_path)
     else:
         # Default: run on all Excel files in the "Excel Files" subfolder
-        folder_path = os.path.join(os.path.dirname(__file__), folder_name)
-        if not os.path.exists(folder_path):
-            print(f"Error: subfolder {folder_name} does not exist.")
+        data_folder_path = os.path.join(os.path.dirname(__file__), data_folder)
 
-        for file in os.listdir(folder_path):
-            if file.endswith(('.xlsx', '.xls')):
-                file_path = os.path.join(folder_path, file)
-                clean_data(file_path)
+        if not os.path.exists(data_folder_path):
+            print(f"Error: subfolder {data_folder} does not exist.")
+
+        for file in os.listdir(data_folder_path):
+            if file.endswith(('.xlsx', '.xls')) and not file.startswith('~'):
+                file_path = os.path.join(data_folder_path, file)
+                try:
+                    clean_data(file_path)
+                    # compute_stats(file_path)
+                except Exception as e:
+                    print(e)
+
 
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

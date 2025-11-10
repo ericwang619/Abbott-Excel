@@ -1,6 +1,6 @@
 import pandas as pd
 from decimal import Decimal
-import statistics
+import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
@@ -11,8 +11,8 @@ from config_headers import *
 from cleaning import fit_columns
 
 
-def compute_stats(sheet = sheet_name):
-    data_df = pd.read_excel(sheet, sheet_name=data_s, keep_default_na=False)
+def compute_stats(sheet = data_sheet_name):
+    data_df = pd.read_excel(sheet, sheet_name=updated_s, keep_default_na=False)
     new_df = pd.read_excel(sheet, sheet_name=consolidated_s, keep_default_na=False)
 
     # group formula with nutrient and find average
@@ -34,7 +34,7 @@ def compute_stats(sheet = sheet_name):
 def find_nut_stats(df, new_df):
 
     # copy relevant columns to new dataframe
-    cols = [form_h, temp_h, newNut_h]
+    cols = [form_h, storage_h, test_h]
     avg_df = df[cols].copy().drop_duplicates()
 
     # add new column for average values
@@ -54,13 +54,13 @@ def find_nut_stats(df, new_df):
 
         match = new_df.loc[((new_df[dur_h] == 0) | (new_df[dur_h] == 'n/a')) &
                            (new_df[form_h] == form) &
-                           (new_df[temp_h] == temp) &
+                           (new_df[storage_h] == temp) &
                            new_df[nut]]
         if len(match) > 0:
             match_nut = match[nut]
-            avg_df.loc[i, avg_h] = statistics.mean(match_nut)
-            avg_df.loc[i, min_h] = min(match_nut)
-            avg_df.loc[i, max_h] = max(match_nut)
+            avg_df.loc[i, avg_h] = np.mean(match_nut)
+            avg_df.loc[i, min_h] = np.min(match_nut)
+            avg_df.loc[i, max_h] = np.max(match_nut)
             avg_df.loc[i, count_h] = len(match)
         else:
             drop_rows.append(i)
