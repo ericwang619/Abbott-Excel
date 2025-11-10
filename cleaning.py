@@ -25,89 +25,99 @@ def clean_data(sheet = data_sheet_name):
     # add new columns headers to dataframe
     add_columns(data_df)
 
-    print("-Converting production date formats")
+    print("--Converting production date formats")
     data_df[prod_date_h] = data_df[prod_date_h].astype(object)
-    for i, _ in data_df.iterrows():
+    for i, row in data_df.iterrows():
         if i != 0 and i % 10000 == 0:
-            print("--processing row", i)
-        prod_date = convert_dates(data_df, i, prod_date_h)
+            print("----processing row", i)
+        prod_date = convert_dates(row, prod_date_h)
         data_df.loc[i, prod_date_h] = prod_date
 
-    print("-Converting completion date formats")
+    print("--Converting completion date formats")
     data_df[comp_date_h] = data_df[comp_date_h].astype(object)
-    for i, _ in data_df.iterrows():
+    for i, row in data_df.iterrows():
         if i != 0 and i % 10000 == 0:
-            print("--processing row", i)
-        comp_date = convert_dates(data_df, i, comp_date_h)
+            print("----processing row", i)
+        comp_date = convert_dates(row, comp_date_h)
         data_df.loc[i, comp_date_h] = comp_date
 
 
     # update column values row by row according to rules
-    print("-Converting temperature (C) and humidity")
-    for i, _ in data_df.iterrows():
+    print("--Converting temperature (C) and humidity")
+    for i, row in data_df.iterrows():
         if i != 0 and i % 10000 == 0:
-            print("--processing row", i)
+            print("----processing row", i)
 
         # cleanup data for temperature and humidity
-        (temp, humidity) = convert_temp_humidity(data_df, i)
+        (temp, humidity) = convert_temp_humidity(row)
         data_df.loc[i, temp_h] = temp
         data_df.loc[i, humidity_h] = humidity
 
-    print("-Converting intervals to days")
-    for i, _ in data_df.iterrows():
+    print("--Converting intervals to days")
+    for i, row in data_df.iterrows():
         # duration conversion
-        data_df.loc[i, interval_h] = convert_duration(data_df, i)
+        data_df.loc[i, interval_h] = convert_duration(row)
 
-    print("-Adding formula codes and sources")
-    no_formula_rows = []
-    for i, _ in data_df.iterrows():
+    print("--Adding formula codes and sources")
+
+    for i, row in data_df.iterrows():
         if i != 0 and i % 10000 == 0:
-            print("--processing row", i)
+            print("----processing row", i)
 
         # pull unit conversion and formula values from other sheets
-        formula, sources = get_formula(data_df, i, form_df)
+        formula, sources = get_formula(row, form_df)
+        data_df.loc[i, form_h] = formula
+        data_df.loc[i, sources_h] = sources
+
+    print("--Dropping rows with no formula code")
+    no_formula_rows = []
+    for i, row in data_df.iterrows():
+        formula = row[form_h]
         if formula == '' or any(f in str(formula) for f in invalid_formulas):
             no_formula_rows.append(i)
-        else:
-            data_df.loc[i, form_h] = formula
-            data_df.loc[i, sources_h] = sources
 
-    print("-Dropping rows with no formula code")
     data_df.drop(no_formula_rows, inplace=True)
     data_df = data_df.reset_index(drop=True)
 
-    print("-Adding test and unit conversions")
+    print("--Adding test and unit conversions")
     first_conv_df = pd.read_excel(first_conv_file, sheet_name=first_conv_s, keep_default_na=False, skiprows=2)
-    for i, _ in data_df.iterrows():
+    for i, row in data_df.iterrows():
         if i != 0 and i % 10000 == 0:
-            print("--processing row", i)
-        add_unit_conversions(data_df, i, unit_df, first_conv_df)
+            print("----processing row", i)
+        test, newUnit, unit_conversion = add_unit_conversions(row, unit_df, first_conv_df)
+        data_df.loc[i, test_h] = test
+        data_df.loc[i, newUnit_h] = newUnit
+        data_df.loc[i, conv_h] = unit_conversion
 
 
     vitE_df = pd.read_excel(vitE_file, sheet_name=vitE_s, keep_default_na=False)
-    print("-Converting to final test results")
-    for i, _ in data_df.iterrows():
+    print("--Converting to final test results")
+    for i, row in data_df.iterrows():
         if i != 0 and i % 10000 == 0:
-            print("--processing row", i)
+            print("----processing row", i)
         # convert texts to float values if possible
-        data_df.loc[i, text_h] = convert_text(data_df, i)
+        data_df.loc[i, text_h] = convert_text(row)
         convert_results(data_df, i, vitE_df)
 
 
-    print("-Removing duplicates")
+    print("--Removing duplicates")
     data_df = data_df.drop_duplicates(subset=[batch_h, project_h, prod_date_h,
                                               temp_h, ab_stage_h, interval_h, test_h, newUnit_h, results_h])
 
-    # consolidate project, batch, temp, duration to have nutrients as columns
-    print("-Creating re-organized sheet")
-    new_df = consolidate(data_df)
-
-    print("-Adding updates to the spreadsheet")
+    print("--Adding updates to the spreadsheet")
     # write revised data to sheet
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
 
         data_df.to_excel(writer, sheet_name=updated_s, index=False)
         fit_columns(data_df, writer, updated_s)
+
+    # consolidate project, batch, temp, duration to have nutrients as columns
+    print("--Creating re-organized tab")
+    new_df = consolidate(data_df)
+
+    print("--Adding re-organized tab to the spreadsheet")
+    # write revised data to sheet
+    with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
 
         new_df.to_excel(writer, sheet_name=consolidated_s, index=False)
         fit_columns(new_df, writer, consolidated_s)
@@ -136,9 +146,7 @@ def add_columns(df):
 
 
 # convert production and completion date formats
-def convert_dates(df, i, col):
-
-    row = df.loc[i]
+def convert_dates(row, col):
 
     # convert production date
     date = row[col]
@@ -161,8 +169,7 @@ def convert_dates(df, i, col):
 
 
 # clean up temperature values
-def convert_temp_humidity(df, i):
-    row = df.loc[i]
+def convert_temp_humidity(row):
     storage = str(row[storage_h])
     humidity = ''
     if storage == 'ROOM':
@@ -191,8 +198,7 @@ def convert_temp_humidity(df, i):
 
 
 # convert duration values to # days
-def convert_duration(df, i):
-    row = df.loc[i]
+def convert_duration(row):
     dur = str(row[dur_h])
     if 'D' in dur:
         return int(dur[:dur.index('D')])
@@ -202,8 +208,7 @@ def convert_duration(df, i):
 
 
 # convert values to number where applicable
-def convert_text(df, i):
-    row = df.loc[i]
+def convert_text(row):
     text = str(row[text_h])
     try:
         text = float(text)
@@ -212,8 +217,7 @@ def convert_text(df, i):
 
 
 # pull matching columns from conversion tab
-def add_unit_conversions(df, i, unit_df, first_conv_df):
-    row = df.loc[i]
+def add_unit_conversions(row, unit_df, first_conv_df):
     cols = [analysis_h, name_h, unit_h]
     analysis, name, units = row[cols]
 
@@ -242,10 +246,8 @@ def add_unit_conversions(df, i, unit_df, first_conv_df):
             newUnit = str(first_match[conversion_units_h])
             unit_conversion = first_match[conversion_conv_h]
 
-    # add values to new columns
-    df.loc[i, test_h] = test
-    df.loc[i, newUnit_h] = newUnit
-    df.loc[i, conv_h] = unit_conversion
+    return test, newUnit, unit_conversion
+
 
 def convert_results(df, i, vitE_df):
     row = df.loc[i]
@@ -266,7 +268,7 @@ def convert_results(df, i, vitE_df):
             formula = row[form_h]
             match = vitE_df.loc[(vitE_df[form_h] == formula)]
             if len(match) > 0:
-                vitE = match.iloc[0][vitE_h]
+                vitE = str(match.iloc[0][vitE_h])
                 df.loc[i, vitE_h] = vitE
                 if (vitE == 'Pending') or ('?' in vitE):
                     df.loc[i, results_h] = '?'
@@ -281,7 +283,6 @@ def convert_results(df, i, vitE_df):
                 df.loc[i, results_h] = '?'
                 return
 
-
         for r in range(1, len(terms)):
             t = terms[r]
             if t == 'density':
@@ -290,7 +291,7 @@ def convert_results(df, i, vitE_df):
                 formula = row[form_h]
                 match = vitE_df.loc[(vitE_df[form_h] == formula)]
                 if len(match) > 0:
-                    vitE = match.iloc[0][vitE_h]
+                    vitE = str(match.iloc[0][vitE_h])
                     df.loc[i, vitE_h] = vitE
                     if (vitE == 'Pending') or ('?' in vitE):
                         df.loc[i, results_h] = '?'
@@ -307,8 +308,7 @@ def convert_results(df, i, vitE_df):
 
 
 # pull matching formula code from formula tab
-def get_formula(df, i, form_df):
-    row = df.loc[i]
+def get_formula(row, form_df):
     project = row[project_h]
     run = row[run_h]
     batch = row[batch_h]
@@ -353,7 +353,7 @@ def consolidate(df):
     for i, row in df.iterrows():
 
         if i != 0 and i % 10000 == 0:
-            print('--processing row', i)
+            print('----processing row', i)
 
         cols = [batch_h, project_h, prod_date_h, temp_h, ab_stage_h, interval_h, test_h, newUnit_h, results_h]
         batch, project, production_date, temp, ab_stage, interval, test, units, results = row[cols]
