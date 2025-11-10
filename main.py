@@ -19,12 +19,19 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
+    # secondary unit conversion tab
+    unit_df = pd.read_excel(second_conv_file, sheet_name=unit_s, keep_default_na=False, skiprows=3)
+
+    # formula code tab
+    form_df = pd.read_excel(formula_code_file, sheet_name=form_s, keep_default_na=False, dtype={project_h: str, run_h: str})
+
+
     if args.file:
         # Run on a single file
         file_path = os.path.join(os.path.dirname(__file__), args.file)
         if not os.path.isfile(file_path):
             print(f"Error: {args.file} does not exist.")
-        clean_data(file_path)
+        clean_data(unit_df, form_df, file_path)
         # compute_stats(file_path)
     else:
         # Default: run on all Excel files in the "Excel Files" subfolder
@@ -36,12 +43,8 @@ if __name__ == '__main__':
         for file in os.listdir(data_folder_path):
             if file.endswith(('.xlsx', '.xls')) and not file.startswith('~'):
                 file_path = os.path.join(data_folder_path, file)
-                try:
-                    clean_data(file_path)
-                    # compute_stats(file_path)
-                except Exception as e:
-                    print("An exception occurred:", e)
-                    traceback.print_exc()
+                clean_data(unit_df, form_df, file_path)
+                # compute_stats(file_path)
 
 
 

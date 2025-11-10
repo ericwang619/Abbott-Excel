@@ -4,28 +4,27 @@
 data_s = 'Data'     # this is the tab where the data is stored in each excel file
 
 # this is the file/tab that contains the formula codes
-formula_code_file = 'instructions.xlsx'
+formula_code_file = '1 - Data Cleansing.xlsx'
 form_s = '3-Formulacode'
 
 # this is the file/tab for the VitE Factor
-vitE_file = 'instructions.xlsx'
+vitE_file = '1 - Data Cleansing.xlsx'
 vitE_s = '5-VitEFactor'
 
 # this file/tab contains the nutrients list
-nutrient_file = 'instructions.xlsx'
-nutrient_s = '6-NutrientList'
+nutrient_file = '6 - Nutrient List.xlsx'
+nutrient_s = 'Nutrient List'
 
-# this is the file/tab that contains the primary unit conversions
+# this is the file/tab used for unit conversion after checking the primary
+second_conv_file = '1 - Data Cleansing.xlsx'
+unit_s = '4-UnitConversion'
+
+# this is the file/tab that contains the primary unit conversion factors
 first_conv_file = 'Unit conversion - 2.xlsx'
 first_conv_s = 'Sheet1'
 first_conv_test_h = "Test"
 first_conv_units_h = 'Unit'
 first_conv_h = "Conversion factor"
-
-# this is the file/tab used for unit conversion after checking the primary
-second_conv_file = 'instructions.xlsx'
-unit_s = '4-UnitConversion'
-
 
 
 # Header Names from the Data + extra tabs
@@ -53,7 +52,7 @@ ab_container_h = 'AB_CONTAINER'
 text_h = 'TEXT'
 
 
-# invalid formula codes
+# invalid formula codes (don't need the whole name, just a part is fine)
 invalid_formulas = ["Can't find", "Do not use", "Pending", "Ask", "Too new", "development"]
 
 
@@ -61,7 +60,7 @@ invalid_formulas = ["Can't find", "Do not use", "Pending", "Ask", "Too new", "de
 
 # newly created sheet names
 updated_s = 'UpdatedData'
-consolidated_s = 'ConsolidatedData'
+consolidated_s = 'Re-Organized Data'
 stats_s = 'FormulaStats'
 clusters_s = 'Clusters'
 
