@@ -282,7 +282,7 @@ def convert_result(row, vitE_map):
     # get text value, if not numerical, result = ?
     text = row.get(text_h)
     if not isinstance(text, (int, float)):
-        return '?', ''
+        return '', ''
 
     # get conversion factor and formula for this row
     result = Decimal(str(text))
@@ -291,8 +291,11 @@ def convert_result(row, vitE_map):
     formula = row.get(form_h, '')
     vitE_val = ''
 
+    if conversion_factor == '':
+        return '', ''
+
     # check for valid conversion factor
-    if conversion_factor not in ['', 'Copy value']:
+    if conversion_factor != 'Copy value':
 
         # perform division as needed
         terms = str(conversion_factor).split('/')
@@ -304,7 +307,7 @@ def convert_result(row, vitE_map):
         if 'Vit E Factor' in f0:
             vitE_val = vitE_map.get(formula, '')
             if vitE_val in ['', 'Pending', None] or '?' in str(vitE_val):
-                return '?', vitE_val
+                return '', vitE_val
             try:
                 factor *= Decimal(str(vitE_val))
             except:
@@ -318,7 +321,7 @@ def convert_result(row, vitE_map):
             try:
                 factor *= Decimal(str(float(f0)))
             except:
-                return '?', vitE_val
+                return '', vitE_val
 
         # perform division with remaining terms
         for t in terms[1:]:
@@ -329,13 +332,13 @@ def convert_result(row, vitE_map):
             elif 'Vit E Factor' in t:
                 vitE_val = vitE_map.get(formula, '')
                 if vitE_val in ['', 'Pending', None] or '?' in str(vitE_val):
-                    return '?', vitE_val
+                    return '', vitE_val
                 factor /= Decimal(str(vitE_val))
             else:
                 try:
                     factor /= Decimal(str(float(t)))
                 except:
-                    return '?', vitE_val
+                    return '', vitE_val
 
     return float(result * factor), vitE_val
 
@@ -407,7 +410,7 @@ def convert_result(row, vitE_map):
 
 def consolidate(df):
     # keep relevant headers
-    headers_to_keep = [form_h, project_h, run_h, batch_h, description_h, batch_type_h, batch_sub_h,
+    headers_to_keep = [form_h, project_h, run_h, batch_h, description_h, batch_type_h, batch_category_h,
                        manu_loc_h, prod_date_h, ab_container_h, ab_stage_h, temp_h, humidity_h, interval_h]
     new_df = df[headers_to_keep].copy().drop_duplicates()
 
