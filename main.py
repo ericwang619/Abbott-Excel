@@ -1,11 +1,13 @@
 # This is a sample Python script.
 from cleaning import *
-from computations import *
+from analysis import *
 import os
 import argparse
+import shutil
 import traceback
 
 data_folder = "Excel Files"
+finshed_folder = "Finished Files"
 
 
 # Press the green button in the gutter to run the script.
@@ -25,6 +27,8 @@ if __name__ == '__main__':
     # formula code tab
     form_df = pd.read_excel(formula_code_file, sheet_name=form_s, keep_default_na=False, dtype={project_h: str, run_h: str})
 
+    finished_folder_path = os.path.join(os.path.dirname(__file__), finshed_folder)
+    os.makedirs(finished_folder_path, exist_ok=True)
 
     if args.file:
         # Run on a single file
@@ -33,6 +37,8 @@ if __name__ == '__main__':
             print(f"Error: {args.file} does not exist.")
         clean_data(unit_df, form_df, file_path)
         # compute_stats(file_path)
+        destination = os.path.join(finished_folder_path, os.path.basename(file_path))
+        shutil.move(file_path, destination)
     else:
         # Default: run on all Excel files in the "Excel Files" subfolder
         data_folder_path = os.path.join(os.path.dirname(__file__), data_folder)
@@ -45,6 +51,9 @@ if __name__ == '__main__':
                 file_path = os.path.join(data_folder_path, file)
                 clean_data(unit_df, form_df, file_path)
                 # compute_stats(file_path)
+
+                destination = os.path.join(finished_folder_path, os.path.basename(file_path))
+                shutil.move(file_path, destination)
 
 
 
