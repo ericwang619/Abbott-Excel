@@ -85,8 +85,8 @@ def clean_data(unit_df, form_df, sheet = data_sheet_name):
     # write revised data to sheet
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
 
-        new_df.to_excel(writer, sheet_name=consolidated_s, index=False)
-        fit_columns(new_df, writer, consolidated_s)
+        new_df.to_excel(writer, sheet_name=organized_s, index=False)
+        fit_columns(new_df, writer, organized_s)
 
     # print total time taken
     elapsed = (time.time() - start_time) / 60
@@ -95,16 +95,21 @@ def clean_data(unit_df, form_df, sheet = data_sheet_name):
 
 # adjust column width to longest value in column
 def fit_columns(new_df, writer, sheet_name):
-    # Access the openpyxl workbook and worksheet
     worksheet = writer.sheets[sheet_name]
-    # Loop through all columns and set width
-    for i, col in enumerate(new_df.columns, 1):  # 1-based index
-        # Compute max width between header and data
-        column_len = max(
-            new_df[col].astype(str).map(len).max(),  # longest cell
-            len(col)  # header
-        ) + 2  # padding
-        worksheet.column_dimensions[get_column_letter(i)].width = column_len
+
+    df_str = new_df.astype(str)
+    columns = df_str.columns
+    data = df_str.values.tolist()  # convert once to rows
+
+    for col_index, col_name in enumerate(columns):
+        longest = len(col_name)
+
+        for row in data:
+            length = len(row[col_index])
+            if length > longest:
+                longest = length
+
+        worksheet.column_dimensions[get_column_letter(col_index + 1)].width = longest
 
 
 # adds new column headers to dataframe
@@ -343,71 +348,6 @@ def convert_result(row, vitE_map):
     return float(result * factor), vitE_val
 
 
-# re-organized sheet with test + units as column headers
-# def consolidate(df):
-#
-#     # keep these from updated data
-#     headers_to_keep = [form_h, project_h, run_h, batch_h, description_h, batch_type_h, batch_sub_h,
-#                        manu_loc_h, prod_date_h, ab_container_h, ab_stage_h, temp_h, humidity_h, interval_h]
-#
-#     # copy relevant columns to new dataframe
-#     new_df = df[headers_to_keep].copy().drop_duplicates()
-#
-#     # extract test, unit headers
-#     nn_df = pd.read_excel(nutrient_file, sheet_name=nutrient_s, skiprows=1, usecols=[0,1], keep_default_na=False)
-#     nn_list = set()
-#     for i, row in nn_df.iterrows():
-#         nn_list.add(str(row[test_h]) + ', ' + str(row[newUnit_h]))
-#
-#     # create new column for each header
-#     for n in nn_list:
-#         new_df[n] = pd.Series(dtype=object)
-#
-#     # remove duplicate values
-#     new_df = new_df.drop_duplicates(subset=[batch_h, project_h, prod_date_h,
-#                                             temp_h, ab_stage_h, interval_h])
-#
-#     # store updates for batch upload after looping
-#     updates = []
-#     total_rows = len(df)
-#
-#     # iterate through all updated data, copying over result values
-#     for i, row in df.iterrows():
-#
-#         # progress tracking (since this can take a while)
-#         if i != 0 and i % 15000 == 0:
-#             print(f'----processing row {i} / {total_rows}')
-#
-#         # extract values from updated data
-#         cols = [batch_h, project_h, prod_date_h, temp_h, ab_stage_h, interval_h, test_h, newUnit_h, results_h]
-#         batch, project, production_date, temp, ab_stage, interval, test, units, results = row[cols]
-#
-#         # only copy numerical values
-#         if results == '' or not isinstance(results, float):
-#             continue
-#
-#         # find matching row in new dataframe
-#         match = new_df.loc[(new_df[batch_h] == batch) &
-#                            (new_df[project_h] == project) &
-#                            (new_df[prod_date_h] == production_date) &
-#                            (new_df[temp_h] == temp) &
-#                            (new_df[ab_stage_h] == ab_stage) &
-#                            (new_df[interval_h] == interval)]
-#
-#         # copy over results value to corresponding column
-#         if len(match) > 0:
-#             index = match.index[0]
-#             col_name = str(test) + (', ' + str(units) if units else '')
-#             updates.append((index, col_name, float(results)))
-#
-#     # apply all updates at once
-#     for index, col_name, value in updates:
-#         new_df.at[index, col_name] = value
-#
-#     new_df.insert(1, data_type_h, 'LIMS Test')
-#
-#     return new_df
-
 def consolidate(df):
     # keep relevant headers
     headers_to_keep = [form_h, project_h, run_h, batch_h, description_h, batch_type_h, batch_category_h,
@@ -415,10 +355,7 @@ def consolidate(df):
     new_df = df[headers_to_keep].copy().drop_duplicates()
 
     # read nutrients and create column names
-    nn_df = pd.read_excel(nutrient_file, sheet_name=nutrient_s, skiprows=1, usecols=[0,1], keep_default_na=False)
-    nn_list = [str(row[test_h]) + ', ' + str(row[newUnit_h]) for _, row in nn_df.iterrows()]
-    for n in nn_list:
-        new_df[n] = pd.NA  # use pandas nullable type
+    nn_df = pd.read_excel(nutrient_file, sheet_name=nutrient_s, skiprows=1, usecols=[0,1,3], keep_default_na=False)
 
     # remove duplicates
     new_df = new_df.drop_duplicates(subset=[batch_h, project_h, prod_date_h, temp_h, ab_stage_h, interval_h])
@@ -430,7 +367,15 @@ def consolidate(df):
 
     # filter rows with numeric results
     df_numeric = df[df[results_h].apply(lambda x: isinstance(x, float))].copy()
-    df_numeric['col_name'] = df_numeric[test_h].astype(str) + ', ' + df_numeric[newUnit_h].astype(str)
+    df_numeric = df_numeric.merge(
+        nn_df[[test_h, newUnit_h, header_h]],
+        on=[test_h, newUnit_h],
+        how='left'
+    )
+
+    # The new column with the mapped header:
+    df_numeric['col_name'] = df_numeric[header_h]
+
 
     # pivot so we can merge
     df_pivot = df_numeric.pivot_table(index='_merge_key', columns='col_name', values=results_h, aggfunc='first')

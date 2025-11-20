@@ -43,6 +43,7 @@ conversion_sources_h = 'Sources'
 conversion_test_h = "Test"
 conversion_units_h = 'Units'
 conversion_conv_h = "Conversion factor"
+header_h = 'Heading for the new set of columns'
 ab_stage_h = 'AB_STAGE'
 description_h = 'DESCRIPTION'
 batch_type_h = 'BATCH_TYPE'
@@ -60,9 +61,10 @@ invalid_formulas = ["Can't find", "Do not use", "Pending", "Ask", "Too new", "de
 
 # newly created sheet names
 updated_s = 'UpdatedData'
-consolidated_s = 'Re-Organized Data'
+organized_s = 'Re-Organized Data'
 stats_s = 'FormulaStats'
 clusters_s = 'Clusters'
+regression_s = 'Regressions'
 
 # new headers
 temp_h = "Temperature"

@@ -36,7 +36,7 @@ if __name__ == '__main__':
         if not os.path.isfile(file_path):
             print(f"Error: {args.file} does not exist.")
         clean_data(unit_df, form_df, file_path)
-        # compute_stats(file_path)
+        perform_analysis(file_path)
         destination = os.path.join(finished_folder_path, os.path.basename(file_path))
         shutil.move(file_path, destination)
     else:
@@ -50,7 +50,7 @@ if __name__ == '__main__':
             if file.endswith(('.xlsx', '.xls')) and not file.startswith('~'):
                 file_path = os.path.join(data_folder_path, file)
                 clean_data(unit_df, form_df, file_path)
-                # compute_stats(file_path)
+                perform_analysis(file_path)
 
                 destination = os.path.join(finished_folder_path, os.path.basename(file_path))
                 shutil.move(file_path, destination)
