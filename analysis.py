@@ -1,3 +1,5 @@
+import math
+
 import pandas as pd
 from decimal import Decimal
 import numpy as np
@@ -167,24 +169,34 @@ def compare_regressions(df):
         best_model = min(rmses, key=rmses.get)
 
         # Get starting value y0 and estimate y12
-        y12 = 0
+
         if np.any(x == 0):
             y0 = y[x == 0][0]
         else:
-            # estimate using the best model at x = 0
+            # estimate using the best model at t = 0
             if best_model == "linear":
                 y0 = slope * 0 + intercept
-                y12 = slope * 12 + intercept
 
             elif best_model == "fitted":
                 # exponential regression: A * exp(-k * x) + C
                 y0 = A_fit * np.exp(-k_fit * 0) + C_fit
-                y12 = A_fit * np.exp(-k_fit * 12) + C_fit
 
             elif best_model == "first_order":
                 # first-order: A * exp(-k * x)
                 y0 = A_first * np.exp(-k_first * 0)
-                y12 = A_first * np.exp(-k_first * 12)
+
+        y12 = 0
+        # estimate using the best model at t = 12
+        if best_model == "linear":
+            y12 = slope * 12 + intercept
+
+        elif best_model == "fitted":
+            # exponential regression: A * exp(-k * x) + C
+            y12 = A_fit * np.exp(-k_fit * 12) + C_fit
+
+        elif best_model == "first_order":
+            # first-order: A * exp(-k * x)
+            y12 = A_first * np.exp(-k_first * 12)
 
         # Normalize only the best model
         formula_best = ''
@@ -202,6 +214,10 @@ def compare_regressions(df):
             A_first_pct = (A_first / y0) * 100
             formula_best = f"Percent = {A_first_pct:.4g} * exp({-k_first:.4g}*t)"
 
+        if (y0 != 0):
+            percent = y12/y0 * 100
+        else:
+            percent = math.inf
 
         final_results.append({
             form_h: formula,
@@ -210,10 +226,11 @@ def compare_regressions(df):
             batch_h: batch,
             temp_h: temp,
             test_h: test,
-            "best_model": best_model,
-            "normalized_formula": formula_best,
-            "Result at t = 0M": f"{y0:.5g}",
-            "Result at t = 12M": f"{y12:.5g}",
+            "Best Model": best_model,
+            "Normalized Formula": formula_best,
+            "Result at t=0M": f"{y0:.5g}",
+            "Result at t=12M": f"{y12:.5g}",
+            "% Remaining": f"{percent:.4g}%",
             "linear_formula": formula_linear,
             "fitted_formula": formula_exp,
             "first_order": formula_first,
