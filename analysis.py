@@ -10,7 +10,7 @@ from config_headers import *
 from cleaning import fit_columns
 
 
-def perform_analysis(sheet = data_sheet_name):
+def perform_analysis(sheet):
 
     file_name = sheet.split('/')[-1][len(prefix):]
 
