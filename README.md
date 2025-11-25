@@ -11,8 +11,7 @@ Please download python onto your computer before using (https://www.python.org/d
 3. Verify python installation. Open command prompt and type "python --version"
 
 ## Creating a Virtual Environment and Installing Dependencies
-You will also need to create a virtual environment and install some python modules into it.  
-This will prevent this program from affecting anything else on your computer:
+You will also need to create a virtual environment and install some python modules. This will prevent the program from affecting anything else on your computer:
 1. Create and navigate to the folder that you will use for this program.  
 Right click the folder in file explorer, and click "copy as path"  
 Open the command prompt from your windows start menu, type "cd " and paste in the file path. Then hit enter
@@ -34,6 +33,6 @@ Open the command prompt from your windows start menu, type "cd " and paste in th
    2. type in "python main.py" and hit enter to run the program on all spreadsheets in the "Excel Files folder"  
    Note: by default, using "python main.py" will only clean and re-organize data.  
    Alternatively you can use:
-      1. "python main.py -b" - this will run both cleaning and analysis on the files within "Excel Files"
-      2. "python main.py -a" - this will run ONLY analysis on the files within "Excel Files"
+      1. "python main.py -b" - this will run **both cleaning and regression analysis** on the files within "Excel Files"
+      2. "python main.py -a" - this will run **only regression analysis** on the files within "Excel Files"
    3. Once you are done executing the program, type "deactivate" to close your virtual environment
