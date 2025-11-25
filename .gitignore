@@ -1,0 +1,7 @@
+venv/
+*.xlsx
+Excel Files/
+Finished Files/
+Helper Files/
+.idea/
+.DS_Store
