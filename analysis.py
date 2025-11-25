@@ -19,18 +19,18 @@ from cleaning import fit_columns
 
 def perform_analysis(sheet = data_sheet_name):
 
-    file_name = sheet.split('/')[-1]
+    file_name = sheet.split('/')[-1][len(prefix):]
 
     print(f"Analyzing {file_name}")
     start_time = time.time()
-    # data_df = pd.read_excel(sheet, sheet_name=updated_s, keep_default_na=False)
+
+    # read in re-organized data
     new_df = pd.read_excel(sheet, sheet_name=organized_s, keep_default_na=False)
 
+    # data_df = pd.read_excel(sheet, sheet_name=updated_s, keep_default_na=False)
     # # group formula with nutrient and find average
     # avg_df = find_nut_stats(data_df, new_df)
-    #
-    # # sort formula into clusters
-    # cluster_df = create_cluster(avg_df)
+
 
     print("--Performing Regression Analysis")
     reg_df = compare_regressions(new_df)
@@ -38,11 +38,9 @@ def perform_analysis(sheet = data_sheet_name):
     print("--Adding updates to the spreadsheet")
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
         # avg_df.to_excel(writer, sheet_name=stats_s, index=False)
-        # cluster_df.to_excel(writer, sheet_name=clusters_s, index=False)
-        #
         # fit_columns(avg_df, writer, stats_s)
-        # fit_columns(cluster_df, writer, clusters_s)
 
+        # adding regression analysis
         reg_df.to_excel(writer, sheet_name=regression_s, index=False)
         fit_columns(reg_df, writer, regression_s)
 
@@ -56,7 +54,7 @@ def perform_analysis(sheet = data_sheet_name):
 def find_nut_stats(df, new_df):
 
     # copy relevant columns to new dataframe
-    cols = [form_h, storage_h, test_h]
+    cols = [form_h, temp_h, test_h]
     avg_df = df[cols].copy().drop_duplicates()
 
     # add new column for average values
@@ -76,7 +74,7 @@ def find_nut_stats(df, new_df):
 
         match = new_df.loc[((new_df[dur_h] == 0) | (new_df[dur_h] == 'n/a')) &
                            (new_df[form_h] == form) &
-                           (new_df[storage_h] == temp) &
+                           (new_df[temp_h] == temp) &
                            new_df[nut]]
         if len(match) > 0:
             match_nut = match[nut]
@@ -90,28 +88,13 @@ def find_nut_stats(df, new_df):
     return avg_df.drop(drop_rows)
 
 
-def create_cluster(avg_df):
-    cluster_df = avg_df.pivot(index='Formula', columns='NewNut', values='Average')
-    cluster_df = cluster_df.fillna(0).infer_objects(copy=False)
-
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(cluster_df)
-
-    kmeans = KMeans(n_clusters=5, random_state=42)
-    clusters = kmeans.fit_predict(X_scaled)
-    cluster_df = cluster_df.reset_index()
-    formula_col = cluster_df.pop('Formula')
-    cluster_df.insert(0, 'Formula', formula_col)
-    cluster_df.insert(0, 'Cluster', clusters)
-
-    return cluster_df.sort_values(by='Cluster')
-
-
 def compare_regressions(df):
 
+    # find column number of test names (starts after interval column)
     interval_index = df.columns.get_loc(interval_h)
     cols = df.columns[interval_index+1:]
 
+    # transpose values under test column to be row data under results column
     df = df.melt(
         id_vars=[form_h, temp_h, interval_h, project_h, run_h, batch_h],
         value_vars=cols,
@@ -120,105 +103,69 @@ def compare_regressions(df):
     )
 
 
-    # Clean interval column robustly
+    # convert interval and result values to numeric
     df = col_to_num(df, interval_h)
     df = col_to_num(df, results_h)
 
+    # if somehow multiple values for same form, temp, project, run, batch, interval, test combinations, get the average
     agg_df = (
         df.groupby([form_h, temp_h, project_h, run_h, batch_h, interval_h, test_h])[results_h]
         .mean()
         .reset_index()
     )
 
+    # only perform regression if more than 1 data point
     counts = agg_df.groupby([form_h, temp_h, project_h, run_h, batch_h, test_h]).size().reset_index(name="count")
     valid = counts[counts["count"]>1][[form_h, temp_h, project_h, run_h, batch_h, test_h]]
     agg_df = agg_df.merge(valid, on=[form_h, temp_h, project_h, run_h, batch_h, test_h], how="inner")
 
+    # perform regression, rmse using data points for all formula, temp, project, run, batch, test combinations
     final_results = []
     for (formula, temp, project, run, batch, test), group in agg_df.groupby([form_h, temp_h, project_h, run_h, batch_h, test_h]):
+
+        # compute regression as a function of interval months instead of days
         x = group[interval_h].values.astype(float) / 30.0
         y = group[results_h].values.astype(float)
 
+        # --- Linear Regression ---
         slope, intercept = linear_regression(x, y)
         y_linear = slope * x + intercept
         rmse_linear = compute_rmse(y, y_linear)
         formula_linear = f"Result = {slope:.4f}*t + {intercept:.2f}"
 
-        # --- Exponential regression ---
+        # --- Exponential Regression ---
+        a_fit, k_fit, c_fit = 0, 0, 0
         try:
-            A_fit, k_fit, C_fit = fitted_regression(x, y)
-            y_exp = exp_decay(x, A_fit, k_fit, C_fit)
+            a_fit, k_fit, c_fit = fitted_regression(x, y)
+            y_exp = exp_decay(x, a_fit, k_fit, c_fit)
             rmse_exp = compute_rmse(y, y_exp)
-            formula_exp = f"Result = {A_fit:.3f} * e({-k_fit:.3f}*t) + {C_fit:.2f}"
+            formula_exp = f"Result = {a_fit:.3f} * e({-k_fit:.3f}*t) + {c_fit:.2f}"
         except:
             rmse_exp = np.inf
             formula_exp = "fit_failed"
 
-        # --- First-order regression ---
+        # --- First-order Regression ---
+        a_first, k_first = 0, 0
         try:
-            A_first, k_first = first_order_regression(x, y)
-            y_first = A_first * np.exp(-k_first * x)
+            a_first, k_first = first_order_regression(x, y)
+            y_first = a_first * np.exp(-k_first * x)
             rmse_first = compute_rmse(y, y_first)
-            formula_first = f"Result = {A_first:.2f} * exp({-k_first:.4f}*t)"
+            formula_first = f"Result = {a_first:.2f} * exp({-k_first:.4f}*t)"
         except:
             rmse_first = np.inf
             formula_first = "first_order_failed"
 
-
+        # compare root-mean-square-error of regressions, choose the best
         rmses = {"linear": rmse_linear, "fitted": rmse_exp, "first_order": rmse_first}
         best_model = min(rmses, key=rmses.get)
 
-        # Get starting value y0 and estimate y12
-
-        if np.any(x == 0):
-            y0 = y[x == 0][0]
-        else:
-            # estimate using the best model at t = 0
-            if best_model == "linear":
-                y0 = slope * 0 + intercept
-
-            elif best_model == "fitted":
-                # exponential regression: A * exp(-k * x) + C
-                y0 = A_fit * np.exp(-k_fit * 0) + C_fit
-
-            elif best_model == "first_order":
-                # first-order: A * exp(-k * x)
-                y0 = A_first * np.exp(-k_first * 0)
-
-        y12 = 0
-        # estimate using the best model at t = 12
-        if best_model == "linear":
-            y12 = slope * 12 + intercept
-
-        elif best_model == "fitted":
-            # exponential regression: A * exp(-k * x) + C
-            y12 = A_fit * np.exp(-k_fit * 12) + C_fit
-
-        elif best_model == "first_order":
-            # first-order: A * exp(-k * x)
-            y12 = A_first * np.exp(-k_first * 12)
+        # Get starting value y0 and estimate y12 + percentage y12/y0
+        percent, y0, y12 = get_y0_y12(a_first, a_fit, c_fit, best_model, intercept, k_first, k_fit, slope, x, y)
 
         # Normalize only the best model
-        formula_best = ''
-        if best_model == "linear":
-            slope_pct = (slope / y0) * 100
-            intercept_pct = (intercept / y0) * 100
-            formula_best = f"Percent = {slope_pct:.4g}*t + {intercept_pct:.4g}"
+        formula_best = normalize_best(a_first, a_fit, c_fit, best_model, intercept, k_first, k_fit, slope, y0)
 
-        elif best_model == "fitted":
-            A_pct = (A_fit / y0) * 100
-            C_pct = (C_fit / y0) * 100
-            formula_best = f"Percent = {A_pct:.4g} * exp({-k_fit:.4g}*t) + {C_pct:.4g}"
-
-        elif best_model == "first_order":
-            A_first_pct = (A_first / y0) * 100
-            formula_best = f"Percent = {A_first_pct:.4g} * exp({-k_first:.4g}*t)"
-
-        if (y0 != 0):
-            percent = y12/y0 * 100
-        else:
-            percent = math.inf
-
+        # compile analysis results
         final_results.append({
             form_h: formula,
             project_h: project,
@@ -239,10 +186,69 @@ def compare_regressions(df):
             "first_order_rmse": f"{rmse_first:.3g}"
         })
 
+    # convert all analysis results to a dataframe to be uploaded
     final_df = pd.DataFrame(final_results)
     return final_df
 
 
+# based on best_model, get normalized formula (100% at t=0) of the regression
+def normalize_best(a_first, a_fit, c_fit, best_model, intercept, k_first, k_fit, slope, y0):
+    formula_best = ''
+    if best_model == "linear":
+        slope_pct = (slope / y0) * 100
+        intercept_pct = (intercept / y0) * 100
+        formula_best = f"Percent = {slope_pct:.4g}*t + {intercept_pct:.4g}"
+
+    elif best_model == "fitted":
+        A_pct = (a_fit / y0) * 100
+        C_pct = (c_fit / y0) * 100
+        formula_best = f"Percent = {A_pct:.4g} * exp({-k_fit:.4g}*t) + {C_pct:.4g}"
+
+    elif best_model == "first_order":
+        A_first_pct = (a_first / y0) * 100
+        formula_best = f"Percent = {A_first_pct:.4g} * exp({-k_first:.4g}*t)"
+    return formula_best
+
+
+# get the value at t=0, estimate t=12M, and get the percentage at t=12M
+def get_y0_y12(a_first, a_fit, c_fit, best_model, intercept, k_first, k_fit, slope, x, y):
+    if np.any(x == 0):
+        y0 = y[x == 0][0]
+    else:
+        # estimate using the best model at t = 0
+        if best_model == "linear":
+            y0 = slope * 0 + intercept
+
+        elif best_model == "fitted":
+            # exponential regression: A * exp(-k * x) + C
+            y0 = a_fit * np.exp(-k_fit * 0) + c_fit
+
+        elif best_model == "first_order":
+            # first-order: A * exp(-k * x)
+            y0 = a_first * np.exp(-k_first * 0)
+
+    y12 = 0
+    # estimate using the best model at t = 12
+    if best_model == "linear":
+        y12 = slope * 12 + intercept
+
+    elif best_model == "fitted":
+        # exponential regression: A * exp(-k * x) + C
+        y12 = a_fit * np.exp(-k_fit * 12) + c_fit
+
+    elif best_model == "first_order":
+        # first-order: A * exp(-k * x)
+        y12 = a_first * np.exp(-k_first * 12)
+
+    if (y0 != 0):
+        percent = y12 / y0 * 100
+    else:
+        percent = math.inf
+
+    return percent, y0, y12
+
+
+# convert columns to numeric
 def col_to_num(df, column):
     df.loc[:, column] = (
         df[column].astype(str)
@@ -253,17 +259,22 @@ def col_to_num(df, column):
     df = df.dropna(subset=[column])
     return df
 
+# root-mean-square error calculation
 def compute_rmse(y_true, y_pred):
     return np.sqrt(mean_squared_error(y_true, y_pred))
 
+# perform linear regression analysis
 def linear_regression(x, y):
     model = LinearRegression()
     model.fit(x.reshape(-1, 1), y)
     return model.coef_[0], model.intercept_
 
+
+# for fitted regression
 def exp_decay(t, A, k, C):
     return A*np.exp(-k*t) + C
 
+# perform fitted regression analysis
 def fitted_regression(x, y):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", OptimizeWarning)
@@ -279,6 +290,7 @@ def fitted_regression(x, y):
     return A, k, C
 
 
+# perform first order regression analysis
 def first_order_regression(x, y):
     # Must have strictly positive y-values for log() to work
     if np.any(y <= 0) or np.any(np.isnan(y)):

@@ -8,7 +8,7 @@ from config_headers import *
 
 
 def clean_data(unit_df, form_df, sheet = data_sheet_name):
-    file_name = sheet.split('/')[-1]
+    file_name = sheet.split('/')[-1][len(prefix):]
 
     print(f"Cleaning {file_name}")
     start_time = time.time()
@@ -76,6 +76,9 @@ def clean_data(unit_df, form_df, sheet = data_sheet_name):
         data_df.to_excel(writer, sheet_name=updated_s, index=False)
         fit_columns(data_df, writer, updated_s)
 
+        wb = writer.book
+        wb.remove(wb[data_s])
+
     # create new tab with test+unit as columns and re-organize result data
     print("--Creating re-organized tab")
     new_df = consolidate(data_df)
@@ -109,7 +112,7 @@ def fit_columns(new_df, writer, sheet_name):
             if length > longest:
                 longest = length
 
-        worksheet.column_dimensions[get_column_letter(col_index + 1)].width = longest
+        worksheet.column_dimensions[get_column_letter(col_index + 1)].width = longest + 2
 
 
 # adds new column headers to dataframe

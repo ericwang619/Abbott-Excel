@@ -26,7 +26,9 @@ Open command prompt from the start menu, type "cd " and paste the file path
 ## To use the program:
 1. Download the main.py, cleaning.py, and config_headers.py files from the github repository into your project folder
 2. Create a subfolder called "Excel Files" within your project folder and store any spreadsheets you want to edit inside
-3. Modify the config_headers.py file with a text editor to match your tab and column header names. Note that the program will use the same formatting for all spreadsheets. 
+3. Copy into the project folder the files that will be utilized for cleaning (ex. formula codes, nutrient list, etc.)  
+   Note: these same files will be used for all data files within the Excel Files subfolder
+3. Modify the config_headers.py file with a text editor to match your file, tab, and column header names. Note that the program will use the same formatting for all spreadsheets. 
 4. Open up the command line, navigate to the project folder
    1. Activate your virtual environment with "venv\Scripts\activate" if not already activated.
    2. type in "python main.py" and hit enter to run the program on all spreadsheets in the "Excel Files folder"  

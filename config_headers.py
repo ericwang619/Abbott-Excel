@@ -59,6 +59,9 @@ invalid_formulas = ["Can't find", "Do not use", "Pending", "Ask", "Too new", "de
 
 # ------------- DO NOT MODIFY BELOW THIS LINE ------------
 
+# prefix to modified excel sheet name (this can be empty)
+prefix = 'Updated_'
+
 # newly created sheet names
 updated_s = 'UpdatedData'
 organized_s = 'Re-Organized Data'
