@@ -132,3 +132,6 @@ results_h = 'Results'
 # --- data type header/value ---
 data_type_h = 'Data Type'
 data_type_value = 'LIMS Test'
+
+
+avg_h = 'Average'   # header for average calculation

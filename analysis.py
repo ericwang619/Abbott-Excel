@@ -1,13 +1,6 @@
 import math
-
 import pandas as pd
-from decimal import Decimal
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
-import seaborn as sns
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit, OptimizeWarning
 from sklearn.metrics import mean_squared_error
@@ -59,9 +52,6 @@ def find_nut_stats(df, new_df):
 
     # add new column for average values
     avg_df[avg_h] = pd.Series(dtype=object)
-    avg_df[min_h] = pd.Series(dtype=object)
-    avg_df[max_h] = pd.Series(dtype=object)
-    avg_df[count_h] = pd.Series(dtype=object)
 
     drop_rows = []
 
@@ -79,9 +69,6 @@ def find_nut_stats(df, new_df):
         if len(match) > 0:
             match_nut = match[nut]
             avg_df.loc[i, avg_h] = np.mean(match_nut)
-            avg_df.loc[i, min_h] = np.min(match_nut)
-            avg_df.loc[i, max_h] = np.max(match_nut)
-            avg_df.loc[i, count_h] = len(match)
         else:
             drop_rows.append(i)
 
