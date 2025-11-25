@@ -7,13 +7,15 @@ import re
 from config_headers import *
 
 
-def clean_data(unit_df, form_df, sheet = data_sheet_name):
+def clean_data(unit_df, form_df, sheet):
+
+    # extract file name from path for printing
     file_name = sheet.split('/')[-1][len(prefix):]
 
     print(f"Cleaning {file_name}")
     start_time = time.time()
 
-    # data tab
+    # read in original data
     data_df = pd.read_excel(sheet, sheet_name=data_s, keep_default_na=False, dtype={project_h: str, run_h: str})
 
     # add new columns headers to dataframe
@@ -44,7 +46,7 @@ def clean_data(unit_df, form_df, sheet = data_sheet_name):
 
     # copy corresponding test, unit, and conversion factor if exists
     print("--Adding and applying test/unit conversions to get final results")
-    first_conv_df = pd.read_excel(first_conv_file, sheet_name=first_conv_s, keep_default_na=False, skiprows=2)
+    first_conv_df = pd.read_excel(first_conv_file, sheet_name=first_conv_s, keep_default_na=False, skiprows=first_conv_skip)
     data_df = add_unit_conversions(data_df, unit_df, first_conv_df)
 
     # change text to numeric value if applicable
@@ -69,13 +71,14 @@ def clean_data(unit_df, form_df, sheet = data_sheet_name):
                                                temp_h, ab_stage_h, interval_h,
                                                test_h, newUnit_h, results_h]).reset_index(drop=True))
 
-    # upload changes back to the excel sheet
+    # upload changes back to the Excel sheet
     print("--Adding updates to the spreadsheet")
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
 
         data_df.to_excel(writer, sheet_name=updated_s, index=False)
         fit_columns(data_df, writer, updated_s)
 
+        # remove original data from new file
         wb = writer.book
         wb.remove(wb[data_s])
 
@@ -85,6 +88,7 @@ def clean_data(unit_df, form_df, sheet = data_sheet_name):
 
     # upload new tab to the Excel file
     print("--Adding re-organized tab to the spreadsheet")
+
     # write revised data to sheet
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
 
@@ -118,6 +122,8 @@ def fit_columns(new_df, writer, sheet_name):
 # adds new column headers to dataframe
 def add_columns(df, headers):
     for h in headers:
+
+        # dtype = object can accept any value type
         df[h] = pd.Series(dtype=object)
 
 
@@ -147,29 +153,33 @@ def convert_dates(date):
 # extract temperature and humidity (if possible) from storage value
 def convert_temp_humidity(row):
     storage = str(row[storage_h])
-    humidity = ''
+    humidity = ''   # empty by default
+
     if storage == 'ROOM':
         return pd.Series([22, humidity])
     elif storage == 'REFRIG':
         return pd.Series([4, humidity])
     elif storage == "FROZEN":
         return pd.Series([-20, humidity])
+
     elif 'C' in storage:
         # strip 'C' from number
         i = storage.index('C')
         temp = int(storage[:i])
-        humidity = storage[i+2:]
+        humidity = storage[i+2:]    # skips the - if exists
         if humidity != '':
             humidity = int(humidity)
         return pd.Series([temp, humidity])
+
     elif 'F' in storage:
         # calculate C from F value
         i = storage.index('F')
         temp = round((int(storage[:i])-32)/9*5, 2)
-        humidity = storage[i+2:]
+        humidity = storage[i+2:]    # skips the - if exists
         if humidity != '':
             humidity = int(humidity)
         return pd.Series([temp, humidity])
+
     return pd.Series([storage, humidity])
 
 
@@ -358,7 +368,7 @@ def consolidate(df):
     new_df = df[headers_to_keep].copy().drop_duplicates()
 
     # read nutrients and create column names
-    nn_df = pd.read_excel(nutrient_file, sheet_name=nutrient_s, skiprows=1, usecols=[0,1,3], keep_default_na=False)
+    nn_df = pd.read_excel(nutrient_file, sheet_name=nutrient_s, skiprows=nutrient_skip, usecols=nutrient_cols, keep_default_na=False)
 
     # remove duplicates
     new_df = new_df.drop_duplicates(subset=[batch_h, project_h, prod_date_h, temp_h, ab_stage_h, interval_h])
@@ -387,7 +397,7 @@ def consolidate(df):
     new_df = new_df.merge(df_pivot, left_on='_merge_key', right_index=True, how='left')
 
     # insert data_type_h column
-    new_df.insert(1, data_type_h, 'LIMS Test')
+    new_df.insert(1, data_type_h, data_type_value)
 
     # drop temporary merge key
     new_df.drop(columns=['_merge_key'], inplace=True)

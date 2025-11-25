@@ -4,10 +4,8 @@ from analysis import *
 import os
 import argparse
 import shutil
-import traceback
 
-data_folder = "Excel Files"
-finshed_folder = "Finished Files"
+
 
 
 # Press the green button in the gutter to run the script.

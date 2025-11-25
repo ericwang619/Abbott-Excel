@@ -1,33 +1,83 @@
-# --------- MODIFY THESE TAB/HEADER NAMES AS NEEDED ----------
+# --------- MODIFY THESE FOLDER/FILE/TAB NAMES AS NEEDED ----------
 
-# Excel Tab/Sheet Names
-data_s = 'Data'     # this is the tab where the data is stored in each excel file
+# ----- Folder Names -----
 
-# this is the file/tab that contains the formula codes
-formula_code_file = '1 - Data Cleansing.xlsx'
-form_s = '3-Formulacode'
+# folder that has the original data files
+data_folder = "Excel Files"
 
-# this is the file/tab for the VitE Factor
-vitE_file = '1 - Data Cleansing.xlsx'
-vitE_s = '5-VitEFactor'
+# folder name where modified files will be stored
+finshed_folder = "Finished Files"
 
-# this file/tab contains the nutrients list
-nutrient_file = '6 - Nutrient List.xlsx'
-nutrient_s = 'Nutrient List'
+# ----- End of Folder Names -----
 
-# this is the file/tab used for unit conversion after checking the primary
-second_conv_file = '1 - Data Cleansing.xlsx'
-unit_s = '4-UnitConversion'
 
-# this is the file/tab that contains the primary unit conversion factors
+# ------- Excel Tab/Sheet Names -------
+
+data_s = 'Data'     # this is the tab where the data is stored in each Excel file
+
+
+# ----- Start of Unit Conversion Section -----
+
+# --- Primary unit conversions ---
+
+# this is the file and tab name for primary unit conversion
 first_conv_file = 'Unit conversion - 2.xlsx'
 first_conv_s = 'Sheet1'
+
+# this is the # of rows in the primary conversion to skip before headers
+first_conv_skip = 2
+
+# these are the headers inside the primary unit conversion file
 first_conv_test_h = "Test"
 first_conv_units_h = 'Unit'
 first_conv_h = "Conversion factor"
 
+# --- end of primary unit conversion ---
 
-# Header Names from the Data + extra tabs
+# secondary unit conversions
+second_conv_file = '1 - Data Cleansing.xlsx'
+unit_s = '4-UnitConversion'
+
+# ----- End of Unit Conversion section -----
+
+
+# --- Formula Code section ---
+
+# this is the file and tab that contains the formula codes
+formula_code_file = '1 - Data Cleansing.xlsx'
+form_s = '3-Formulacode'
+
+# invalid formula codes (don't need the whole name, just a part is fine)
+invalid_formulas = ["Can't find", "Do not use", "Pending", "Ask", "Too new", "development"]
+
+# --- End of Formula Code section ---
+
+
+# --- Nutrient List section ---
+
+# this is the file and tab that contains the nutrients list
+nutrient_file = '6 - Nutrient List.xlsx'
+nutrient_s = 'Nutrient List'
+
+# how many rows in nutrient list file to skip before headers
+nutrient_skip = 1
+
+# which columns in nutrient list to use, Col A = 0, B = 1...
+nutrient_cols = [0, 1, 3]
+
+# --- End Nutrient List section ---
+
+
+# this is the file and tab for the VitE Factor
+vitE_file = '1 - Data Cleansing.xlsx'
+vitE_s = '5-VitEFactor'
+
+
+# ------- end of Excel tab/sheet names -------
+
+
+# --- Header Names from the Data + extra tabs ---
+
 batch_h = 'BATCH'
 project_h = 'PROJECT'
 run_h = 'RUN'
@@ -52,24 +102,22 @@ manu_loc_h = 'MANUFACTURING_LOCATION'
 ab_container_h = 'AB_CONTAINER'
 text_h = 'TEXT'
 
-
-# invalid formula codes (don't need the whole name, just a part is fine)
-invalid_formulas = ["Can't find", "Do not use", "Pending", "Ask", "Too new", "development"]
+# --- End of Data tab header names ---
 
 
-# ------------- DO NOT MODIFY BELOW THIS LINE ------------
+# -------- New File/Sheet/Header Names --------
 
-# prefix to modified excel sheet name (this can be empty)
+# prefix to modified Excel File name (this can be empty - '')
 prefix = 'Updated_'
 
-# newly created sheet names
-updated_s = 'UpdatedData'
-organized_s = 'Re-Organized Data'
-stats_s = 'FormulaStats'
-clusters_s = 'Clusters'
-regression_s = 'Regressions'
 
-# new headers
+# --- Newly Created Sheet Names ---
+
+updated_s = 'UpdatedData'       # sheet name for cleaned data
+organized_s = 'Re-Organized Data'   # sheet name for re-organized (test as headers) data
+regression_s = 'Regressions'    # sheet name for regression analysis
+
+# --- header names in new sheets ---
 temp_h = "Temperature"
 humidity_h = "Humidity"
 interval_h = "Interval (D)"
@@ -81,14 +129,6 @@ conv_h = 'Conversion Factor'
 vitE_h = 'Vit E factor'
 results_h = 'Results'
 
+# --- data type header/value ---
 data_type_h = 'Data Type'
-
-
-avg_h = 'Average'
-min_h = 'Minimum'
-max_h = 'Maximum'
-count_h = 'Count'
-
-
-
-data_sheet_name = "1 - Data Cleansing.xlsx"
+data_type_value = 'LIMS Test'
