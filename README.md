@@ -18,13 +18,12 @@ Open command prompt from the start menu, type "cd " and paste the file path
 2. Type "python -m venv venv" to create your virtual environment
 3. Type "venv\Scripts\activate" to activate your virtual environment
 4. Type "python -m pip install --upgrade pip"
-5. Type "pip install pandas"
-6. Type "pip install openpyxl"
+5. Type "pip install -r requirements.txt"
 7. Type "deactivate" to deactivate the virtual environment
 
 
 ## To use the program:
-1. Download the main.py, cleaning.py, and config_headers.py files from the github repository into your project folder
+1. Download the main.py, cleaning.py, analysis.py, and config_headers.py files from the github repository into your project folder
 2. Create a subfolder called "Excel Files" within your project folder and store any spreadsheets you want to edit inside
 3. Copy into the project folder the files that will be utilized for cleaning (ex. formula codes, nutrient list, etc.)  
    Note: these same files will be used for all data files within the Excel Files subfolder
