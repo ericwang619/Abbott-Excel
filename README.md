@@ -16,7 +16,7 @@ You will also need to create a virtual environment and install some python modul
 Right click the folder in file explorer, and click "copy as path"  
 Open the command prompt from your windows start menu, type "cd " and paste in the file path. Then hit enter
 2. Enter in "python -m venv venv" to create your virtual environment
-3. Enter in "venv\Scripts\activate" to activate your virtual environment
+3. Enter in "venv\Scripts\activate" to activate your virtual environment. You should see a (venv) text in your command line after.
 4. Enter in "python -m pip install --upgrade pip"
 5. Enter in "pip install -r requirements.txt"
 7. Enter in "deactivate" to deactivate the virtual environment

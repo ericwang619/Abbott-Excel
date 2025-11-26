@@ -40,7 +40,7 @@ def perform_analysis(sheet):
     print("--Computing averages at t=12 months")
     avg12_df = compute_avg12(reg_df)
 
-    print("--Uploading averages to the Excel file")
+    print("--Uploading t=12 averages to the Excel file")
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
 
         # adding regression analysis

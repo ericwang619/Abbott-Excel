@@ -28,7 +28,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     run_clean = True
-    run_analysis = True
+    run_analysis = False
 
     if args.both:
         run_clean = True
@@ -38,9 +38,9 @@ if __name__ == '__main__':
         run_analysis = True
 
     # store secondary unit conversion tab
-    unit_df = pd.read_excel(second_conv_file, sheet_name=unit_s, keep_default_na=False, skiprows=3)
+    unit_df = pd.read_excel(Path(helper_folder) / second_conv_file, sheet_name=unit_s, keep_default_na=False, skiprows=3)
     # store formula code tab
-    form_df = pd.read_excel(formula_code_file, sheet_name=form_s, keep_default_na=False, dtype={project_h: str, run_h: str})
+    form_df = pd.read_excel(Path(helper_folder) / formula_code_file, sheet_name=form_s, keep_default_na=False, dtype={project_h: str, run_h: str})
 
     # make a subfolder to store updated files
     finished_folder_path = os.path.join(os.path.dirname(__file__), finshed_folder)
@@ -76,6 +76,17 @@ if __name__ == '__main__':
                 if os.path.exists(destination):
                     os.remove(destination)  # replace if file name exists already
                 shutil.move(new_file_path, destination)
+
+                # Extract each sheet and save as its own file
+                print("--Extracting tabs to individual sheets")
+                all_sheets = pd.read_excel(destination, sheet_name=None)  # read all sheets
+                for sheet_name, df in all_sheets.items():
+                    # Build output path: finished_folder_path / new_file_tabName.xlsx
+                    name_only = os.path.splitext(new_file)[0]  # remove .xlsx
+                    sheet_file = os.path.join(finished_folder_path, f"{name_only}_{sheet_name}.xlsx")
+
+                    # Save the sheet
+                    df.to_excel(sheet_file, index=False)
 
             except Exception as e:
                 print(f"Error processing {file}: {e}")
