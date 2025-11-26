@@ -28,7 +28,7 @@ def perform_analysis(sheet):
     print("--Performing Regression Analysis")
     reg_df = compare_regressions(new_df)
 
-    print("--Adding updates to the spreadsheet")
+    print("--Uploading analysis to the Excel file")
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
         # avg_df.to_excel(writer, sheet_name=stats_s, index=False)
         # fit_columns(avg_df, writer, stats_s)
@@ -36,6 +36,16 @@ def perform_analysis(sheet):
         # adding regression analysis
         reg_df.to_excel(writer, sheet_name=regression_s, index=False)
         fit_columns(reg_df, writer, regression_s)
+
+    print("--Computing averages at t=12 months")
+    avg12_df = compute_avg12(reg_df)
+
+    print("--Uploading averages to the Excel file")
+    with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
+
+        # adding regression analysis
+        avg12_df.to_excel(writer, sheet_name=average12_s, index=False)
+        fit_columns(avg12_df, writer, average12_s)
 
     # print total time taken
     elapsed = (time.time() - start_time) / 60
@@ -103,7 +113,24 @@ def compare_regressions(df):
 
     # only perform regression if more than 1 data point
     counts = agg_df.groupby([form_h, temp_h, project_h, run_h, batch_h, test_h]).size().reset_index(name="count")
-    valid = counts[counts["count"]>1][[form_h, temp_h, project_h, run_h, batch_h, test_h]]
+
+    # Determine if each group has ANY interval >= 60
+    interval_check = (
+        agg_df.groupby([form_h, temp_h, project_h, run_h, batch_h, test_h])[interval_h]
+        .max()
+        .reset_index()
+    )
+
+    interval_check["has_interval_60plus"] = interval_check[interval_h] >= 60
+
+    # Keep groups with:
+    # 1) count > 1
+    # 2) at least one interval >= 60
+    valid = (
+        counts.merge(interval_check, on=[form_h, temp_h, project_h, run_h, batch_h, test_h])
+        .query("count > 1 and has_interval_60plus")
+        [[form_h, temp_h, project_h, run_h, batch_h, test_h]]
+    )
     agg_df = agg_df.merge(valid, on=[form_h, temp_h, project_h, run_h, batch_h, test_h], how="inner")
 
     # perform regression, rmse using data points for all formula, temp, project, run, batch, test combinations
@@ -144,7 +171,10 @@ def compare_regressions(df):
 
         # compare root-mean-square-error of regressions, choose the best
         rmses = {"linear": rmse_linear, "fitted": rmse_exp, "first_order": rmse_first}
-        best_model = min(rmses, key=rmses.get)
+        if len(group) == 2:
+            best_model = "first_order"
+        else:
+            best_model = min(rmses, key=rmses.get)
 
         # Get starting value y0 and estimate y12 + percentage y12/y0
         percent, y0, y12 = get_y0_y12(a_first, a_fit, c_fit, best_model, intercept, k_first, k_fit, slope, x, y)
@@ -162,9 +192,9 @@ def compare_regressions(df):
             test_h: test,
             "Best Model": best_model,
             "Normalized Formula": formula_best,
-            "Result at t=0M": f"{y0:.5g}",
-            "Result at t=12M": f"{y12:.5g}",
-            "% Remaining": f"{percent:.4g}%",
+            t0_h: f"{y0:.5g}",
+            t12_h: f"{y12:.5g}",
+            percent12_h: f"{percent:.4g}",
             "linear_formula": formula_linear,
             "fitted_formula": formula_exp,
             "first_order": formula_first,
@@ -292,3 +322,17 @@ def first_order_regression(x, y):
     A = np.exp(model.intercept_)
 
     return A, k
+
+
+def compute_avg12(df):
+    df = col_to_num(df, percent12_h)
+
+    agg_df = (
+        df.groupby([form_h, temp_h, test_h])[percent12_h]
+        .mean()
+        .apply(lambda x: float(f"{x:.4g}"))  # 4 significant figures
+        .reset_index()
+        .rename(columns={percent12_h: avg12_h})
+    )
+
+    return agg_df

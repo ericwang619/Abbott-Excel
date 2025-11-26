@@ -1,4 +1,5 @@
 # --------- MODIFY THESE FOLDER/FILE/TAB NAMES AS NEEDED ----------
+# ***** All file/sheet/header names are CASE + SPACE sensitive *****
 
 # ----- Folder Names -----
 
@@ -7,6 +8,9 @@ data_folder = "Excel Files"
 
 # folder name where modified files will be stored
 finshed_folder = "Finished Files"
+
+# folder name where helper files (formula code, nutrients, etc.) are stored
+helper_folder = "Helper Files"
 
 # ----- End of Folder Names -----
 
@@ -108,14 +112,16 @@ text_h = 'TEXT'
 # -------- New File/Sheet/Header Names --------
 
 # prefix to modified Excel File name (this can be empty - '')
-prefix = 'Updated_'
+prefix = 'updated_'
 
 
 # --- Newly Created Sheet Names ---
 
-updated_s = 'UpdatedData'       # sheet name for cleaned data
+cleaned_s = 'CleanedData'       # sheet name for cleaned data
 organized_s = 'Re-Organized Data'   # sheet name for re-organized (test as headers) data
 regression_s = 'Regressions'    # sheet name for regression analysis
+average0_s = '0 Time Average'
+average12_s = '12 Month Average'
 
 # --- header names in new sheets ---
 temp_h = "Temperature"
@@ -133,5 +139,8 @@ results_h = 'Results'
 data_type_h = 'Data Type'
 data_type_value = 'LIMS Test'
 
-
+t0_h = "Result at t=0M"
+t12_h = "Result at t=12M"
+percent12_h = "% Remaining at t=12M"
+avg12_h = "Avg % at t=12M"
 avg_h = 'Average'   # header for average calculation

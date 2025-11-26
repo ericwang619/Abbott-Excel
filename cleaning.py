@@ -3,7 +3,7 @@ from decimal import Decimal
 from openpyxl.utils import get_column_letter
 import time
 import re
-
+from pathlib import Path
 from config_headers import *
 
 
@@ -46,7 +46,7 @@ def clean_data(unit_df, form_df, sheet):
 
     # copy corresponding test, unit, and conversion factor if exists
     print("--Adding and applying test/unit conversions to get final results")
-    first_conv_df = pd.read_excel(first_conv_file, sheet_name=first_conv_s, keep_default_na=False, skiprows=first_conv_skip)
+    first_conv_df = pd.read_excel(Path(helper_folder) / first_conv_file, sheet_name=first_conv_s, keep_default_na=False, skiprows=first_conv_skip)
     data_df = add_unit_conversions(data_df, unit_df, first_conv_df)
 
     # change text to numeric value if applicable
@@ -56,7 +56,7 @@ def clean_data(unit_df, form_df, sheet):
     add_columns(data_df, [vitE_h, results_h])
 
     # this is the sheet/tab that holds the vitE values
-    vitE_df = pd.read_excel(vitE_file, sheet_name=vitE_s, keep_default_na=False)
+    vitE_df = pd.read_excel(Path(helper_folder) / vitE_file, sheet_name=vitE_s, keep_default_na=False)
     vitE_map = vitE_df.set_index(form_h)[vitE_h].to_dict()
 
     # transform text based on conversion factor
@@ -71,25 +71,27 @@ def clean_data(unit_df, form_df, sheet):
                                                temp_h, ab_stage_h, interval_h,
                                                test_h, newUnit_h, results_h]).reset_index(drop=True))
 
-    # upload changes back to the Excel sheet
-    print("--Adding updates to the spreadsheet")
+    # upload changes to an Excel sheet
+    print("--Uploading cleaned data to Excel file")
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
-
-        data_df.to_excel(writer, sheet_name=updated_s, index=False)
-        fit_columns(data_df, writer, updated_s)
 
         # remove original data from new file
         wb = writer.book
         wb.remove(wb[data_s])
+
+        data_df.to_excel(writer, sheet_name=cleaned_s, index=False)
+        fit_columns(data_df, writer, cleaned_s)
+
+
 
     # create new tab with test+unit as columns and re-organize result data
     print("--Creating re-organized tab")
     new_df = consolidate(data_df)
 
     # upload new tab to the Excel file
-    print("--Adding re-organized tab to the spreadsheet")
+    print("--Uploading re-organized data to Excel file")
 
-    # write revised data to sheet
+    # write revised data to new sheet
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
 
         new_df.to_excel(writer, sheet_name=organized_s, index=False)
@@ -368,7 +370,7 @@ def consolidate(df):
     new_df = df[headers_to_keep].copy().drop_duplicates()
 
     # read nutrients and create column names
-    nn_df = pd.read_excel(nutrient_file, sheet_name=nutrient_s, skiprows=nutrient_skip, usecols=nutrient_cols, keep_default_na=False)
+    nn_df = pd.read_excel(Path(helper_folder) / nutrient_file, sheet_name=nutrient_s, skiprows=nutrient_skip, usecols=nutrient_cols, keep_default_na=False)
 
     # remove duplicates
     new_df = new_df.drop_duplicates(subset=[batch_h, project_h, prod_date_h, temp_h, ab_stage_h, interval_h])

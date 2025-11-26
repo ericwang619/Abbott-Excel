@@ -28,7 +28,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     run_clean = True
-    run_analysis = False
+    run_analysis = True
 
     if args.both:
         run_clean = True
