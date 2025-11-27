@@ -75,12 +75,14 @@ def clean_data(unit_df, form_df, sheet):
     print("--Uploading cleaned data to Excel file")
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
 
+        data_df.to_excel(writer, sheet_name=cleaned_s, index=False)
+        fit_columns(data_df, writer, cleaned_s)
+
         # remove original data from new file
         wb = writer.book
         wb.remove(wb[data_s])
 
-        data_df.to_excel(writer, sheet_name=cleaned_s, index=False)
-        fit_columns(data_df, writer, cleaned_s)
+
 
 
 
@@ -96,6 +98,19 @@ def clean_data(unit_df, form_df, sheet):
 
         new_df.to_excel(writer, sheet_name=organized_s, index=False)
         fit_columns(new_df, writer, organized_s)
+
+    # create new tab with zero time averages
+    print("--Creating zero time average tab")
+    zero_df = zero_avg(new_df)
+
+    # upload new tab to the Excel file
+    print("--Uploading zero time averages to Excel file")
+
+    # write revised data to new sheet
+    with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
+
+        zero_df.to_excel(writer, sheet_name=average0_s, index=False)
+        fit_columns(zero_df, writer, average0_s)
 
     # print total time taken
     elapsed = (time.time() - start_time) / 60
@@ -405,3 +420,30 @@ def consolidate(df):
     new_df.drop(columns=['_merge_key'], inplace=True)
 
     return new_df
+
+
+def zero_avg(df):
+
+    df[interval_h] = pd.to_numeric(df[interval_h], errors="coerce")
+    df = df[(df[interval_h].isna()) | (df[interval_h] <= 30)]
+    df = df[df[batch_category_h].isin(['DV', 'SV'])]
+    stage_filter = ['AST', 'CHK', 'DIP', 'PDY', 'PFL', 'SET', 'TST']
+    df = df[~df[ab_stage_h].isin(stage_filter)]
+
+    interval_index = df.columns.get_loc(interval_h)
+    cols = df.columns[interval_index+1:]
+    df[cols] = df[cols].apply(pd.to_numeric, errors='coerce')
+    agg_df = (
+        df.groupby([form_h])[cols]
+        .mean()
+        .reset_index()
+    )
+
+    # Apply 4 significant figures to each numeric cell
+    agg_df[cols] = agg_df[cols].apply(
+        lambda col: col.map(lambda v: float(format(v, ".4g")) if pd.notna(v) else v)
+    )
+
+    agg_df.insert(1, "0TimeAvg", "0TimeAvg")
+
+    return agg_df

@@ -111,8 +111,8 @@ text_h = 'TEXT'
 
 # -------- New File/Sheet/Header Names --------
 
-# prefix to modified Excel File name (this can be empty - '')
-prefix = 'updated_'
+# prefix to modified Excel File name (this cannot be empty - '')
+prefix = 'new_'
 
 
 # --- Newly Created Sheet Names ---
