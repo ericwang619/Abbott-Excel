@@ -18,20 +18,13 @@ def perform_analysis(sheet):
     start_time = time.time()
 
     # read in re-organized data
-    new_df = pd.read_excel(sheet, sheet_name=organized_s, keep_default_na=False)
-
-    # data_df = pd.read_excel(sheet, sheet_name=updated_s, keep_default_na=False)
-    # # group formula with nutrient and find average
-    # avg_df = find_nut_stats(data_df, new_df)
-
+    new_df = pd.read_excel(sheet, sheet_name=organized_s, keep_default_na=False, dtype={run_h: str})
 
     print("--Performing Regression Analysis")
     reg_df = compare_regressions(new_df)
 
     print("--Uploading analysis to the Excel file")
     with pd.ExcelWriter(sheet, mode="a", if_sheet_exists="replace") as writer:
-        # avg_df.to_excel(writer, sheet_name=stats_s, index=False)
-        # fit_columns(avg_df, writer, stats_s)
 
         # adding regression analysis
         reg_df.to_excel(writer, sheet_name=regression_s, index=False)
@@ -51,38 +44,6 @@ def perform_analysis(sheet):
     elapsed = (time.time() - start_time) / 60
     print(f"Finished Analyzing {file_name} in {elapsed:.3f} minutes\n")
 
-
-
-# finds average value of each nutrient for all formulas at duration 0
-def find_nut_stats(df, new_df):
-
-    # copy relevant columns to new dataframe
-    cols = [form_h, temp_h, test_h]
-    avg_df = df[cols].copy().drop_duplicates()
-
-    # add new column for average values
-    avg_df[avg_h] = pd.Series(dtype=object)
-
-    drop_rows = []
-
-    for i, row in avg_df.iterrows():
-        form, temp, nut = row[cols]
-
-        if (form == 'n/a') | (nut == 'n/a'):
-            drop_rows.append(i)
-            continue
-
-        match = new_df.loc[((new_df[dur_h] == 0) | (new_df[dur_h] == 'n/a')) &
-                           (new_df[form_h] == form) &
-                           (new_df[temp_h] == temp) &
-                           new_df[nut]]
-        if len(match) > 0:
-            match_nut = match[nut]
-            avg_df.loc[i, avg_h] = np.mean(match_nut)
-        else:
-            drop_rows.append(i)
-
-    return avg_df.drop(drop_rows)
 
 
 def compare_regressions(df):
@@ -140,6 +101,7 @@ def compare_regressions(df):
         # compute regression as a function of interval months instead of days
         x = group[interval_h].values.astype(float) / 30.0
         y = group[results_h].values.astype(float)
+        num_points = len(group)
 
         # --- Linear Regression ---
         slope, intercept = linear_regression(x, y)
@@ -171,7 +133,7 @@ def compare_regressions(df):
 
         # compare root-mean-square-error of regressions, choose the best
         rmses = {"linear": rmse_linear, "fitted": rmse_exp, "first_order": rmse_first}
-        if len(group) == 2:
+        if num_points == 2:
             best_model = "first_order"
         else:
             best_model = min(rmses, key=rmses.get)
@@ -195,6 +157,7 @@ def compare_regressions(df):
             t0_h: f"{y0:.5g}",
             t12_h: f"{y12:.5g}",
             percent12_h: f"{percent:.4g}",
+            "# Data Points": num_points,
             "linear_formula": formula_linear,
             "fitted_formula": formula_exp,
             "first_order": formula_first,
@@ -267,12 +230,10 @@ def get_y0_y12(a_first, a_fit, c_fit, best_model, intercept, k_first, k_fit, slo
 
 # convert columns to numeric
 def col_to_num(df, column):
-    df.loc[:, column] = (
-        df[column].astype(str)
-        .str.strip()
-        .replace(r'^\s*$', np.nan, regex=True)
+    df[column] = pd.to_numeric(
+        df[column].astype(str).str.strip().replace(r'^\s*$', np.nan, regex=True),
+        errors='coerce'
     )
-    df.loc[:, column] = pd.to_numeric(df[column], errors='coerce')
     df = df.dropna(subset=[column])
     return df
 

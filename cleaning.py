@@ -202,7 +202,9 @@ def convert_temp_humidity(row):
 
 # convert duration values to # days
 def convert_duration(dur):
-    if 'D' in dur:
+    if not dur or dur == 'NA':
+        return 0
+    elif 'D' in dur:
         return int(dur[:dur.index('D')])
     elif 'M' in dur:
         return 30*int(dur[:dur.index('M')])
